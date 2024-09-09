@@ -1,0 +1,9 @@
+{{define "response"}}
+
+    {{if eq . "BAD_REQUEST"}}
+        BAD_REQUEST
+    {{else}}
+        <h1>{{.}}!</h1>
+    {{end}}
+
+{{end}}

@@ -15,16 +15,24 @@ import (
 	"math/rand"
 )
 
-func InitializeContext(as_domain string, context *map[string]string, requires []string, dev_mode bool) {
+var RedirectionTarget string
+
+func AutoInitialize(as_domain string, context *map[string]string, requires []string, mode string, redirect_target string) {
 	if len(os.Args) == 1 {
-		if dev_mode {
+		RedirectionTarget = redirect_target
+		if mode == "dev" {
 			auto_server("8001")
 		} else {
-			ip := get_remote_ip()
+			var ip string
+			if mode == "local" {
+				ip = "127.0.0.1"
+			} else {
+				ip = get_remote_ip("https://ip.metareverse.xyz")
+			}
 			port := get_random_port()
 			if self_declare(as_domain, ip, port, "domain_workers") {
+				fmt.Printf("Self declared as %s with %s:%s in domain_workers\n", as_domain, ip, port)
 				auto_server(port)
-				fmt.Printf("Self declared as %s with %s : %s in domain_workers\n", as_domain, ip, port)
 			} else {
 				fmt.Println("Error initializing context.")
 				os.Exit(1)
@@ -40,7 +48,7 @@ func InitializeContext(as_domain string, context *map[string]string, requires []
 		}
 		for _, key := range requires {
 			if _, exists := (*context)[key]; !exists {
-				fmt.Printf("The Request Misses Required Key: %s \n", key)
+				fmt.Print("BAD_REQUEST")
 				os.Exit(1)
 			}
 		}
@@ -116,16 +124,16 @@ func handle_impulse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outbuf, error := auto_invoke(contextJSON)
-	if error != nil {
-		tmpl := template.New("error").Funcs(templates.GetTemplateFunctions())
-		tmpl, _ = tmpl.ParseFiles("templates/error.html")
+	outbuf, response := auto_invoke(contextJSON)
+	if response != nil {
+		tmpl := template.New("response").Funcs(templates.GetTemplateFunctions())
+		tmpl, _ = tmpl.ParseFiles("templates/response.html")
 		err := tmpl.Execute(w, outbuf)
 		if err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		}
 	} else {
-		http.Redirect(w, r, "/success", http.StatusSeeOther)
+		http.Redirect(w, r, RedirectionTarget, http.StatusSeeOther)
 	}
 
 }
@@ -140,8 +148,7 @@ func auto_invoke(jsonContext []byte) (string, error) {
 	return outBuf.String(), err
 }
 
-func get_remote_ip() string {
-	url := "http://ip.metareverse.xyz"
+func get_remote_ip(url string) string {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)

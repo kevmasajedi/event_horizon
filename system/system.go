@@ -43,7 +43,7 @@ func Repeater(downlink chan string, uplink chan string, initiator string, termin
 			to = time.After(10 * time.Second)
 		case <-to:
 			fmt.Println("TimeOut!")
-			os.Exit(1)
+			os.Exit(0)
 			return
 		}
 	}

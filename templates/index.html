@@ -1,11 +1,16 @@
-<html>
-    <head>
-        <script src="https://unpkg.com/htmx.org@2.0.2"></script>
-    </head>
-    <form hx-post="/" hx-swap="outerHTML" hx-push-url="true">
-        <label for="phone_number">Phone Number:</label>
-        <input type="text" id="phone_number" name="phone_number"required>
-        <button type="submit">Submit</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+    <form action="hello" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+        <button type="submit">Say Hello</button>
     </form>
+
+</body>
 </html>
-  

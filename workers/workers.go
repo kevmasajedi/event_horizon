@@ -13,16 +13,18 @@ import (
 	"unicode"
 )
 
-func NilWorker(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string, err string) {
+func NilWorker(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string) {
 	for msg := range downlink {
 		if msg == trigger {
-			randomBit := rand.Intn(2)
-			if randomBit == 0 {
-				loglink <- trigger + "->" + emission
-				uplink <- emission
-			} else {
-				redlink <- err
-			}
+			loglink <- trigger + "->" + emission
+			uplink <- emission
+		}
+	}
+}
+func SayHello(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string, context map[string]string, name_field string) {
+	for msg := range downlink {
+		if msg == trigger {
+			redlink <- fmt.Sprintf("Hello %s", context[name_field])
 		}
 	}
 }
