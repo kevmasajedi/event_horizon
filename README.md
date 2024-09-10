@@ -173,7 +173,7 @@ go build -o reflector main.go
 
 8- To start reflector as a service run service_install.sh
 
-### Dispatch Configuration
+## Dispatch Configuration
 
 1- Generate a new config file with `nano /etc/nginx/sites-available/dispatch`.
 
