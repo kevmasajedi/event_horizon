@@ -93,7 +93,7 @@ func FindOneFromCollection(collectionName string, item map[string]string) map[st
 	return result
 }
 func load_tls_config() *tls.Config {
-	caFile := "cert/mongo.pem"
+	caFile := "cert/fullchain.pem"
 	caCert, err := os.ReadFile(caFile)
 	if err != nil {
 		panic(err)
