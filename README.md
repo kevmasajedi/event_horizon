@@ -1,10 +1,6 @@
 # Installation
 
 ## Debian Bookworm
-### Installer
-
-Just `cd` to installers and run `chmod +x ./debian_bookworm.sh && ./debian_bookworm.sh` or:
-
 ### Manual Installation:
 
 1- Add to `.bashrc`:
