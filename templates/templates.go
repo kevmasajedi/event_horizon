@@ -2,6 +2,7 @@ package templates
 
 import (
 	"html/template"
+	"os"
 )
 
 func GetTemplateFunctions() template.FuncMap {
