@@ -13,6 +13,7 @@ import (
 	"os/exec"
 
 	"math/rand"
+	"github.com/lpernett/godotenv"
 )
 
 var RedirectionTarget string
@@ -27,7 +28,7 @@ func AutoInitialize(as_domain string, context *map[string]string, requires []str
 			if mode == "local" {
 				ip = "127.0.0.1"
 			} else {
-				ip = get_remote_ip("https://ip.metareverse.xyz")
+				ip = get_remote_ip(os.Getenv("VERSE_REFLECTOR"))
 			}
 			port := get_random_port()
 			if self_declare(as_domain, ip, port, "domain_workers") {
