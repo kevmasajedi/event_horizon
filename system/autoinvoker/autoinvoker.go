@@ -13,7 +13,6 @@ import (
 	"os/exec"
 
 	"math/rand"
-	"github.com/lpernett/godotenv"
 )
 
 var RedirectionTarget string
