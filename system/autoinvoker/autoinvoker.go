@@ -15,11 +15,8 @@ import (
 	"math/rand"
 )
 
-var RedirectionTarget string
-
-func AutoInitialize(as_domain string, context *map[string]string, requires []string, mode string, redirect_target string) {
+func AutoInitialize(as_domain string, context *map[string]string, requires []string, mode string) {
 	if len(os.Args) == 1 {
-		RedirectionTarget = redirect_target
 		if mode == "dev" {
 			auto_server("8001")
 		} else {
@@ -115,7 +112,7 @@ func handle_impulse(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Context Received: ")
 	for k, v := range context {
-		fmt.Printf("%s : %s\n", k, v)
+		fmt.Printf("%s:%s\n", k, v)
 	}
 
 	contextJSON, err := json.Marshal(context)
@@ -127,13 +124,18 @@ func handle_impulse(w http.ResponseWriter, r *http.Request) {
 	outbuf, response := auto_invoke(contextJSON)
 	if response != nil {
 		tmpl := template.New("response").Funcs(templates.GetTemplateFunctions())
-		tmpl, _ = tmpl.ParseFiles("templates/response.html")
-		err := tmpl.Execute(w, outbuf)
+		tmpl, err := tmpl.ParseFiles("templates/response.html")
+		if err != nil {
+			fmt.Println("Error parsing template:", err)
+			http.Error(w, "Error loading template", http.StatusInternalServerError)
+			return
+		}
+		err = tmpl.Execute(w, outbuf)
 		if err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		}
 	} else {
-		http.Redirect(w, r, RedirectionTarget, http.StatusSeeOther)
+		http.Error(w, "No Response from Worker!", http.StatusInternalServerError)
 	}
 
 }
@@ -158,7 +160,6 @@ func get_remote_ip(url string) string {
 	}
 	defer resp.Body.Close()
 
-	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading ip mirror response:", err)
