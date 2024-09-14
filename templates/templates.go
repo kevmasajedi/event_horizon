@@ -1,8 +1,8 @@
 package templates
 
 import (
+	"encoding/json"
 	"html/template"
-	"os"
 )
 
 func GetTemplateFunctions() template.FuncMap {
@@ -10,8 +10,12 @@ func GetTemplateFunctions() template.FuncMap {
 		"eq": func(a, b string) bool {
 			return a == b
 		},
-		"base_url": func() string {
-			return os.Getenv("DISPATCH_SUB_DOMAIN")
+		"unmarshal": func(data string) map[string]interface{} {
+			var result map[string]interface{}
+			if err := json.Unmarshal([]byte(data), &result); err != nil {
+				return nil
+			}
+			return result
 		},
 	}
 }
