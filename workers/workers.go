@@ -3,71 +3,61 @@ package workers
 import (
 	"encoding/json"
 	"event_horizon/system/db"
+	"event_horizon/system/hub"
 	"fmt"
 )
 
-func SaveContextToCollection(downlink chan string, uplink chan string, loglink chan string, trigger string, emission string, context map[string]string, collection_name string) {
-	for msg := range downlink {
+func LoadContextFromCollection(hub *hub.Hub, trigger string, emission string, collection_name string) {
+	for msg := range hub.DownLink() {
 		if msg == trigger {
-			if db.CreateCollection(collection_name) {
-				db.InsertOneIntoCollection(collection_name, context)
-				loglink <- trigger + "->" + emission
-				uplink <- emission
-			}
-		}
-	}
-}
-func LoadContextFromCollection(downlink chan string, uplink chan string, loglink chan string, trigger string, emission string, collection_name string, context map[string]string) {
-	for msg := range downlink {
-		if msg == trigger {
-			result := db.FindOneFromCollection(collection_name, context)
+			result := db.FindOneFromCollection(collection_name, hub.Context())
 			if result != nil {
 				for key, value := range result {
-					context[key] = value
+					hub.Context()[key] = value
 				}
-				loglink <- trigger + "->" + emission
-				uplink <- emission
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
 			}
 		}
 	}
 }
-func DumpContextAsJSON(downlink chan string, uplink chan string, redlink chan string, trigger string, context map[string]string) {
-	for msg := range downlink {
+func DumpContextAsJSON(hub *hub.Hub, trigger string) {
+	for msg := range hub.DownLink() {
 		if msg == trigger {
-			jsonData, err := json.Marshal(context)
+			jsonData, err := json.Marshal(hub.Context())
 			if err != nil {
-				redlink <- "JSON_MARSHAL_ERR"
+				hub.RedLink() <- "JSON_MARSHAL_ERR"
 			} else {
-				redlink <- string(jsonData)
+				hub.RedLink() <- string(jsonData)
 			}
 		}
 	}
 }
-func InitDb(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string) {
-	for msg := range downlink {
+func InitDb(hub *hub.Hub, trigger string, emission string) {
+	for msg := range hub.DownLink() {
 		if msg == trigger {
 			if db.Connect() {
-				loglink <- trigger + "->" + emission
-				uplink <- emission
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
 			} else {
-				redlink <- "DB_INIT_ERROR"
+				hub.RedLink() <- "DB_INIT_ERROR"
 			}
 		}
 	}
 }
 
-func NilWorker(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string) {
-	for msg := range downlink {
+func NilWorker(hub *hub.Hub, trigger string, emission string) {
+	for msg := range hub.DownLink() {
 		if msg == trigger {
-			loglink <- trigger + "->" + emission
-			uplink <- emission
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
 		}
 	}
 }
-func SayHello(downlink chan string, uplink chan string, loglink chan string, redlink chan string, trigger string, emission string, context map[string]string, name_field string) {
-	for msg := range downlink {
+func SayHello(hub *hub.Hub, trigger string, emission string, name_field string) {
+	for msg := range hub.DownLink() {
 		if msg == trigger {
-			redlink <- fmt.Sprintf("Hello %s", context[name_field])
+			hub.RedLink() <- fmt.Sprintf("Hello %s", hub.Context()[name_field])
 		}
 	}
 }
