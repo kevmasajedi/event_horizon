@@ -14,12 +14,13 @@ var DomainRedChannel chan string
 var DomainDedicatedLinks []chan string
 
 var DomainContext map[string]string
+var DomainSlots []map[string]string
 
 var DomainBootFunction func()
 
 var DomainWg sync.WaitGroup
 
-func InitializeDomain(context map[string]string, bootWith func()) {
+func InitializeDomain(context map[string]string, slots []map[string]string, bootWith func()) {
 
 	DomainDownlink = make(chan string)
 	DomainUplink = make(chan string)
@@ -51,6 +52,9 @@ func GetDomainDedicatedLinks() []chan string {
 }
 func GetDomainContext() map[string]string {
 	return DomainContext
+}
+func GetDomainSlots() []map[string]string {
+	return DomainSlots
 }
 func SetDomainContext(dc map[string]string) {
 	DomainContext = dc
