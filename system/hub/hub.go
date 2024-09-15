@@ -2,20 +2,13 @@ package hub
 
 import "event_horizon/system/domains"
 
-type HubInterface interface {
-	DownLink() chan string
-	UpLink() chan string
-	LogLink() chan string
-	RedLink() chan string
-	Context() map[string]string
-}
-
 type Hub struct {
 	downLink chan string
 	upLink   chan string
 	logLink  chan string
 	redLink  chan string
 	context  map[string]string
+	slots    []map[string]string
 }
 
 func NewHub() *Hub {
@@ -25,6 +18,7 @@ func NewHub() *Hub {
 		logLink:  domains.GetLogChannel(),
 		redLink:  domains.GetRedChannel(),
 		context:  domains.GetDomainContext(),
+		slots:    domains.GetDomainSlots(),
 	}
 }
 func (h *Hub) DownLink() chan string {
@@ -45,4 +39,7 @@ func (h *Hub) RedLink() chan string {
 
 func (h *Hub) Context() map[string]string {
 	return h.context
+}
+func (h *Hub) Slots() []map[string]string {
+	return h.slots
 }
