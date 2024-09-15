@@ -15,11 +15,11 @@ var DomainDedicatedLinks []chan string
 
 var DomainContext map[string]string
 
-var DomainBootFunction func(chan string, chan string, chan string, map[string]string)
+var DomainBootFunction func()
 
 var DomainWg sync.WaitGroup
 
-func InitializeDomain(context map[string]string, bootWith func(chan string, chan string, chan string, map[string]string)) {
+func InitializeDomain(context map[string]string, bootWith func()) {
 
 	DomainDownlink = make(chan string)
 	DomainUplink = make(chan string)
@@ -55,11 +55,11 @@ func GetDomainContext() map[string]string {
 func SetDomainContext(dc map[string]string) {
 	DomainContext = dc
 }
-func SetDomainBootFunction(f func(chan string, chan string, chan string, map[string]string)) {
+func SetDomainBootFunction(f func()) {
 	DomainBootFunction = f
 }
 func Boot() {
-	DomainBootFunction(DomainDownlink, DomainLogChannel, DomainRedChannel, DomainContext)
+	DomainBootFunction()
 	DomainWg.Add(1)
 	go system.Logger(DomainLogChannel, &DomainWg)
 	go system.Panicker(DomainRedChannel)
