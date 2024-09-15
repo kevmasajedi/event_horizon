@@ -9,10 +9,13 @@ import (
 )
 
 func main() {
+	
 	var context map[string]string
+	var slots []map[string]string
+
 	autoinvoker.AutoInitialize("hello", &context, []string{"name"}, "local")
 	// system.TurnOnLogger()
-	domains.InitializeDomain(context, domain_workers_bootstrapper)
+	domains.InitializeDomain(context, slots, domain_workers_bootstrapper)
 	domains.Run("impulse_in", "chain_ended")
 }
 
