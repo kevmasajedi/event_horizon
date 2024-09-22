@@ -15,7 +15,7 @@ import (
 	"math/rand"
 )
 
-func AutoInitialize(as_domain string, context *map[string]string, requires []string, mode string) {
+func AutoInitialize(as_domain string, context *map[string]interface{}, requires []string, mode string) {
 	if len(os.Args) == 1 {
 		if mode == "dev" {
 			auto_server("8001")
