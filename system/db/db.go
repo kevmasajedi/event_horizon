@@ -83,9 +83,9 @@ func UpsertItemInCollection(collectionName string, item map[string]string, key s
 	}
 	return true
 }
-func FindOneFromCollection(collectionName string, item map[string]string) map[string]string {
+func FindOneFromCollection(collectionName string, item map[string]interface{}) map[string]interface{} {
 	res := GetDatabase().Collection(collectionName).FindOne(context.TODO(), item)
-	var result map[string]string
+	var result map[string]interface{}
 	if err := res.Decode(&result); err != nil {
 		log.Println("Error decoding result:", err)
 		return nil
