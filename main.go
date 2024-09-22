@@ -9,11 +9,9 @@ import (
 )
 
 func main() {
-	
-	var context map[string]string
-	var slots []map[string]string
+	var context map[string]interface{}
 
-	autoinvoker.AutoInitialize("hello", &context, []string{"name"}, "local")
+	autoinvoker.AutoInitialize("product_list_view", &context, []string{"id"}, "local")
 	// system.TurnOnLogger()
 	domains.InitializeDomain(context, slots, domain_workers_bootstrapper)
 	domains.Run("impulse_in", "chain_ended")
