@@ -13,7 +13,7 @@ func main() {
 
 	autoinvoker.AutoInitialize("product_list_view", &context, []string{"id"}, "local")
 	// system.TurnOnLogger()
-	domains.InitializeDomain(context, slots, domain_workers_bootstrapper)
+	domains.InitializeDomain(context,  domain_workers_bootstrapper)
 	domains.Run("impulse_in", "chain_ended")
 }
 
