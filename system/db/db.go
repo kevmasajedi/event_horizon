@@ -70,7 +70,7 @@ func InsertOneIntoCollection(collectionName string, item map[string]string) bool
 	}
 	return true
 }
-func UpsertItemInCollection(collectionName string, item map[string]string, key string) bool {
+func UpsertItemInCollection(collectionName string, item map[string]interface{}, key string) bool {
 	filter := bson.M{key: item[key]}
 	update := bson.M{
 		"$set": item,
