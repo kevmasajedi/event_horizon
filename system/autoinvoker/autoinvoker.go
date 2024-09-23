@@ -56,7 +56,7 @@ func AutoInitialize(as_domain string, context *map[string]interface{}, requires 
 }
 
 func self_declare(as_domain string, ip string, port string, collection string) bool {
-	context := make(map[string]string)
+	context := make(map[string]interface{})
 	context["domain"] = as_domain
 	context["ip"] = ip
 	context["port"] = port
