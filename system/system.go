@@ -13,7 +13,7 @@ var should_log bool = false
 func Logger(log_link chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for edge := range log_link {
-		logs = fmt.Sprintf(logs+"%s\n", edge)
+		logs = fmt.Sprintf(logs+"%s;\n", edge)
 		if should_log {
 			fmt.Println(logs)
 		}
