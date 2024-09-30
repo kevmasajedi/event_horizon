@@ -114,6 +114,34 @@ func AppendValueToArray(hub *hub.Hub, trigger string, emission string, value_key
 		}
 	}
 }
+func RemoveValueFromArray(hub *hub.Hub, trigger string, emission string, value_key string, array_key string) {
+	for msg := range hub.DownLink() {
+			if msg == trigger {
+					if arr, exists := hub.Context()[array_key]; exists {
+							arrSlice, err := convertPrimitiveAToStringSlice(arr.(primitive.A))
+							if err != nil {
+									hub.RedLink() <- "REMOVE_VAL_ERR"
+							} else {
+									valueToRemove := hub.Context()[value_key].(string)
+									newArr := []string{}
+									removed := false
+
+									for _, val := range arrSlice {
+											if val == valueToRemove && !removed {
+													removed = true
+													continue
+											}
+											newArr = append(newArr, val)
+									}
+
+									hub.Context()[array_key] = newArr
+							}
+					}
+					hub.LogLink() <- trigger + "->" + emission
+					hub.UpLink() <- emission
+			}
+	}
+}
 func UpsertKeysAsItemIntoCollection(hub *hub.Hub, trigger string, emission string, context_keys []string, collection_name string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
