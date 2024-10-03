@@ -6,6 +6,8 @@ import (
 	"event_horizon/system/hub"
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -183,6 +185,103 @@ func InitDb(hub *hub.Hub, trigger string, emission string) {
 		}
 	}
 }
+func SetContextKeyAsFormattedSumOfArray(hub *hub.Hub, trigger string, emission string, input_array_key string, output_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			inputArray, exists := hub.Context()[input_array_key].([]string)
+			if !exists {
+				hub.RedLink() <- "INPUT_ARRAY_NOT_FOUND"
+				return
+			}
+
+			sum := 0
+			for _, elem := range inputArray {
+				// Remove commas and convert to integer
+				cleanedElem := strings.ReplaceAll(elem, ",", "")
+				if num, err := strconv.Atoi(cleanedElem); err == nil {
+					sum += num
+				} else {
+					hub.RedLink() <- "INVALID_NUMBER_IN_ARRAY"
+					return
+				}
+			}
+
+			// Format the sum with commas
+			formattedSum := fmt.Sprintf("%d", sum)
+			formattedSumWithCommas := addCommas(formattedSum)
+
+			// Set the formatted sum in the context
+			hub.Context()[output_key] = formattedSumWithCommas
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+func SetContextKeyAsFormattedMultipleOfKey(hub *hub.Hub, trigger string, emission string, key string, coefficient float64, output_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			valStr, exists := hub.Context()[key].(string)
+			if !exists {
+				hub.RedLink() <- "VALUE_NOT_FOUND"
+				return
+			}
+
+			cleanedVal := strings.ReplaceAll(valStr, ",", "")
+			val, err := strconv.ParseFloat(cleanedVal, 64)
+			if err != nil {
+				hub.RedLink() <- "INVALID_NUMBER"
+				return
+			}
+
+			result := val * coefficient
+
+			formattedResult := fmt.Sprintf("%.0f", result)
+			formattedResultWithCommas := addCommas(formattedResult)
+
+			hub.Context()[output_key] = formattedResultWithCommas
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+func SetContextKeyAsFormattedSumOfKeys(hub *hub.Hub, trigger string, emission string, key1 string, key2 string, output_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			// Retrieve the values from the context and convert to float
+			valStr1, exists1 := hub.Context()[key1].(string)
+			valStr2, exists2 := hub.Context()[key2].(string)
+
+			if !exists1 || !exists2 {
+				hub.RedLink() <- "VALUE_NOT_FOUND"
+				return
+			}
+
+			// Remove commas from the values
+			cleanedVal1 := strings.ReplaceAll(valStr1, ",", "")
+			cleanedVal2 := strings.ReplaceAll(valStr2, ",", "")
+
+			val1, err1 := strconv.ParseFloat(cleanedVal1, 64)
+			val2, err2 := strconv.ParseFloat(cleanedVal2, 64)
+
+			if err1 != nil || err2 != nil {
+				hub.RedLink() <- "INVALID_NUMBER"
+				return
+			}
+
+			// Add the values
+			result := val1 + val2
+
+			// Format the result with commas
+			formattedResult := fmt.Sprintf("%.0f", result)
+			formattedResultWithCommas := addCommas(formattedResult)
+
+			// Set the formatted result in the context
+			hub.Context()[output_key] = formattedResultWithCommas
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
 func AppendValueToArray(hub *hub.Hub, trigger string, emission string, value_key string, array_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
@@ -243,6 +342,75 @@ func UpsertKeysAsItemIntoCollection(hub *hub.Hub, trigger string, emission strin
 		}
 	}
 }
+func MapArrayElementsToCollectionValue(hub *hub.Hub, trigger string, emission string, input_array_key string, collection_name string, output_array_key string, result_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			// Check if input array exists in hub context as primitive.A
+			inputArray, exists := hub.Context()[input_array_key].(primitive.A)
+			if !exists {
+				hub.RedLink() <- "INPUT_ARRAY_NOT_FOUND"
+				return
+			}
+
+			outputArray := []string{}
+
+			// Loop through each element in the input array and perform a lookup in the collection
+			for _, elem := range inputArray {
+				// Make sure elem is string or properly cast it
+				if elemStr, ok := elem.(string); ok {
+					result := db.FindOneFromCollection(collection_name, map[string]interface{}{"id": elemStr})
+					if result != nil {
+						// Extract the desired value from the result using result_key
+						if value, found := result[result_key].(string); found {
+							outputArray = append(outputArray, value)
+						}
+					}
+				}
+			}
+
+			// Store the results in the output array key
+			hub.Context()[output_array_key] = outputArray
+
+			// Log and emit the trigger and emission
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+
+func MapArrayElementsToCollectionResults(hub *hub.Hub, trigger string, emission string, input_array_key string, collection_name string, output_array_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			// Check if input array exists in hub context as primitive.A
+			inputArray, exists := hub.Context()[input_array_key].(primitive.A)
+			if !exists {
+				hub.RedLink() <- "INPUT_ARRAY_NOT_FOUND"
+				return
+			}
+
+			outputArray := []interface{}{}
+
+			// Loop through each element in the input array and perform a lookup in the collection
+			for _, elem := range inputArray {
+				// Make sure elem is string or properly cast it
+				if elemStr, ok := elem.(string); ok {
+					result := db.FindOneFromCollection(collection_name, map[string]interface{}{"id": elemStr})
+					if result != nil {
+						outputArray = append(outputArray, result)
+					}
+				}
+			}
+
+			// Store the results in the output array key
+			hub.Context()[output_array_key] = outputArray
+
+			// Log and emit the trigger and emission
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+
 func GenerateUniqueId(hub *hub.Hub, trigger string, emission string, as_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
@@ -313,4 +481,31 @@ func convertPrimitiveAToStringSlice(arr primitive.A) ([]string, error) {
 	}
 
 	return strSlice, nil
+}
+
+// Helper function to add commas to the number
+func addCommas(s string) string {
+	n := len(s)
+	if n <= 3 {
+		return s
+	}
+	rem := n % 3
+	if rem == 0 {
+		rem = 3
+	}
+	return s[:rem] + "," + strings.Join(splitEvery(s[rem:], 3), ",")
+}
+
+// Helper function to split the string every n characters
+func splitEvery(s string, n int) []string {
+	result := []string{}
+	for len(s) > 0 {
+		if len(s) <= n {
+			result = append(result, s)
+			break
+		}
+		result = append(result, s[:n])
+		s = s[n:]
+	}
+	return result
 }
