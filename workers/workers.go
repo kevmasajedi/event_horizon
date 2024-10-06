@@ -185,6 +185,17 @@ func InitDb(hub *hub.Hub, trigger string, emission string) {
 		}
 	}
 }
+func SetContextKeyAsDirectValue(hub *hub.Hub, trigger string, emission string, key string, value interface{}) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			hub.Context()[key] = value
+
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+
 func SetContextKeyAsFormattedSumOfArray(hub *hub.Hub, trigger string, emission string, input_array_key string, output_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
