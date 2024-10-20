@@ -40,6 +40,9 @@ func NumericSanitizer(hub *hub.Hub, trigger string, emission string, key string)
 			isNumeric := true
 
 			for _, ch := range val {
+				if ch == ',' {
+					continue
+				}
 				if englishChar, exists := persianArabicToEnglish[ch]; exists {
 					normalized = append(normalized, englishChar)
 				} else if ch >= '0' && ch <= '9' {
