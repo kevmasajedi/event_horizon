@@ -37,5 +37,22 @@ func GetTemplateFunctions() template.FuncMap {
 			}
 			return string(b)
 		},
+		"num_format": func(s string) string {
+			s = strings.ReplaceAll(s, ",", "")
+			n, err := strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return ""
+			}
+			numStr := fmt.Sprintf("%d", n)
+			var buf bytes.Buffer
+			length := len(numStr)
+			for i, r := range numStr {
+				if i > 0 && (length-i)%3 == 0 {
+					buf.WriteString(",")
+				}
+				buf.WriteRune(r)
+			}
+			return buf.String()
+		}
 	}
 }
