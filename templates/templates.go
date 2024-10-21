@@ -1,16 +1,22 @@
 package templates
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 func GetTemplateFunctions() template.FuncMap {
 	return template.FuncMap{
 		"eq": func(a, b string) bool {
 			return a == b
+		},
+		"eqi": func(a string, b int) bool {
+			return a == fmt.Sprintf("%d", b)
 		},
 		"unmarshal": func(data string) map[string]interface{} {
 			var result map[string]interface{}
@@ -53,6 +59,6 @@ func GetTemplateFunctions() template.FuncMap {
 				buf.WriteRune(r)
 			}
 			return buf.String()
-		}
+		},
 	}
 }
