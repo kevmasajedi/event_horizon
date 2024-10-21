@@ -314,6 +314,57 @@ func AppendValueToArray(hub *hub.Hub, trigger string, emission string, value_key
 		}
 	}
 }
+func AppendDistinctValueToArray(hub *hub.Hub, trigger string, emission string, negative_emission string, value_key string, array_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			// Check if the array exists in the context
+			if _, exists := hub.Context()[array_key]; !exists {
+				// Initialize the array if it doesn't exist and add the value
+				hub.Context()[array_key] = []string{hub.Context()[value_key].(string)}
+
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			} else {
+				// Convert existing array to a slice of strings
+				arr, err := convertPrimitiveAToStringSlice(hub.Context()[array_key].(primitive.A))
+				if err != nil {
+					fmt.Println(err.Error())
+					hub.RedLink() <- "APPEND_VAL_ERR"
+				}
+
+				// Check if the value is already in the array
+				value := hub.Context()[value_key].(string)
+				contains := false
+				for _, v := range arr {
+					if v == value {
+						contains = true
+						break
+					}
+				}
+
+				// Only append the value if it isn't already in the array
+				if !contains {
+					hub.Context()[array_key] = append(arr, value)
+
+					hub.LogLink() <- trigger + "->" + emission
+					hub.UpLink() <- emission
+				} else {
+					hub.LogLink() <- trigger + "->" + negative_emission
+					hub.UpLink() <- negative_emission
+				}
+			}
+		}
+	}
+}
+func CopyContextKey(hub *hub.Hub, trigger string, emission string, key_1 string, key_2 string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			hub.Context()[key_2] = hub.Context()[key_1]
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
 func RemoveValueFromArray(hub *hub.Hub, trigger string, emission string, value_key string, array_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
