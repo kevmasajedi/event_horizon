@@ -2,6 +2,7 @@ package workers
 
 import (
 	"encoding/json"
+	"errors"
 	"event_horizon/system/db"
 	"event_horizon/system/hub"
 	"fmt"
@@ -25,6 +26,66 @@ func PhoneNumberValidator(hub *hub.Hub, trigger string, emission string, key str
 			}
 		}
 	}
+}
+
+func AssertGEQ(hub *hub.Hub, trigger string, emission string, negative_emission string, key1 string, key2 string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			value1, err1 := RetrieveNestedValue(hub.Context(), key1)
+			if err1 != nil {
+				fmt.Println(err1.Error())
+				hub.RedLink() <- "KEY1_NOT_FOUND"
+				return
+			}
+			value2, err2 := RetrieveNestedValue(hub.Context(), key2)
+			if err2 != nil {
+				hub.RedLink() <- "KEY2_NOT_FOUND"
+				return
+			}
+			var num1, num2 int
+			var err error
+
+			// Function to convert string with commas to int
+			convertStringToInt := func(s string) (int, error) {
+				s = strings.ReplaceAll(s, ",", "") // Remove commas
+				return strconv.Atoi(s)
+			}
+			switch v1 := value1.(type) {
+			case int:
+				num1 = v1
+			case string:
+				num1, err = convertStringToInt(v1)
+				if err != nil {
+					hub.RedLink() <- "CONV_ERR_KEY_1"
+					return
+				}
+			default:
+				hub.RedLink() <- "CONV_ERR_KEY_1"
+				return
+			}
+			switch v2 := value2.(type) {
+			case int:
+				num2 = v2
+			case string:
+				num2, err = convertStringToInt(v2)
+				if err != nil {
+					hub.RedLink() <- "CONV_ERR_KEY_2"
+					return
+				}
+			default:
+				hub.RedLink() <- "CONV_ERR_KEY_2"
+				return
+			}
+			if num1 >= num2 {
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			} else {
+				hub.LogLink() <- trigger + "->" + negative_emission
+				hub.UpLink() <- negative_emission
+			}
+		}
+	}
+
 }
 
 func NumericSanitizer(hub *hub.Hub, trigger string, emission string, key string) {
@@ -78,6 +139,20 @@ func LoadContextFromCollection(hub *hub.Hub, trigger string, emission string, co
 		}
 	}
 }
+func LoadContextFromCollectionIntoKey(hub *hub.Hub, trigger string, emission string, collection_name string, dest_key string, id_mask_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			result := db.FindOneFromCollection(collection_name, map[string]interface{}{"id": hub.Context()[id_mask_key]})
+			if result != nil {
+				hub.Context()[dest_key] = result
+
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			}
+		}
+	}
+}
+
 func LoadOptionalContextFromCollection(hub *hub.Hub, trigger string, emission string, negative_emission string, collection_name string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
@@ -296,6 +371,54 @@ func SetContextKeyAsFormattedSumOfKeys(hub *hub.Hub, trigger string, emission st
 		}
 	}
 }
+func SetContextKeyAsFormattedDiffOfKeys(hub *hub.Hub, trigger string, emission string, key1 string, key2 string, output_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			// Retrieve the values from the context using the helper function
+			val1Raw, err1 := RetrieveNestedValue(hub.Context(), key1)
+			val2Raw, err2 := RetrieveNestedValue(hub.Context(), key2)
+
+			if err1 != nil || err2 != nil {
+				hub.RedLink() <- "VALUE_NOT_FOUND"
+				return
+			}
+
+			// Convert the retrieved values to strings
+			valStr1, ok1 := val1Raw.(string)
+			valStr2, ok2 := val2Raw.(string)
+
+			if !ok1 || !ok2 {
+				hub.RedLink() <- "INVALID_VALUE_TYPE"
+				return
+			}
+
+			// Remove commas from the values
+			cleanedVal1 := strings.ReplaceAll(valStr1, ",", "")
+			cleanedVal2 := strings.ReplaceAll(valStr2, ",", "")
+
+			val1, err1 := strconv.ParseInt(cleanedVal1, 10, 64)
+			val2, err2 := strconv.ParseInt(cleanedVal2, 10, 64)
+
+			if err1 != nil || err2 != nil {
+				hub.RedLink() <- "INVALID_NUMBER"
+				return
+			}
+
+			// Calculate the difference
+			result := val1 - val2
+
+			// Format the result with commas
+			formattedResult := fmt.Sprintf("%d", result)
+			formattedResultWithCommas := addCommas(formattedResult)
+
+			// Set the formatted result in the context
+			hub.Context()[output_key] = formattedResultWithCommas
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+
 func AppendValueToArray(hub *hub.Hub, trigger string, emission string, value_key string, array_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
@@ -314,6 +437,21 @@ func AppendValueToArray(hub *hub.Hub, trigger string, emission string, value_key
 		}
 	}
 }
+func AppendObjectToArray(hub *hub.Hub, trigger string, emission string, value_key string, array_key string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			if _, exists := hub.Context()[array_key]; !exists {
+				hub.Context()[array_key] = []interface{}{hub.Context()[value_key]}
+			} else {
+				arr := hub.Context()[array_key].([]interface{})
+				hub.Context()[array_key] = append(arr, hub.Context()[value_key])
+			}
+			hub.LogLink() <- trigger + "->" + emission
+			hub.UpLink() <- emission
+		}
+	}
+}
+
 func AppendDistinctValueToArray(hub *hub.Hub, trigger string, emission string, negative_emission string, value_key string, array_key string) {
 	for msg := range hub.DownLink() {
 		if msg == trigger {
@@ -573,4 +711,23 @@ func splitEvery(s string, n int) []string {
 		s = s[n:]
 	}
 	return result
+}
+
+func RetrieveNestedValue(context map[string]interface{}, key string) (interface{}, error) {
+	keys := strings.Split(key, ".")  // Split the key into parts
+	var result interface{} = context // Start with the top-level context
+	for _, k := range keys {
+		switch res := result.(type) {
+		case map[string]interface{}:
+			if val, exists := res[k]; exists {
+				result = val
+			} else {
+				return nil, errors.New("key not found")
+			}
+		default:
+			return nil, errors.New("invalid type encountered")
+		}
+	}
+
+	return result, nil
 }
