@@ -443,7 +443,7 @@ func AppendObjectToArray(hub *hub.Hub, trigger string, emission string, value_ke
 			if _, exists := hub.Context()[array_key]; !exists {
 				hub.Context()[array_key] = []interface{}{hub.Context()[value_key]}
 			} else {
-				arr := hub.Context()[array_key].([]interface{})
+				arr := hub.Context()[array_key].(primitive.A)
 				hub.Context()[array_key] = append(arr, hub.Context()[value_key])
 			}
 			hub.LogLink() <- trigger + "->" + emission
