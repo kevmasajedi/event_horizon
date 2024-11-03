@@ -87,7 +87,32 @@ func AssertGEQ(hub *hub.Hub, trigger string, emission string, negative_emission 
 	}
 
 }
+func AssertEQ(hub *hub.Hub, trigger string, emission string, negative_emission string, key1 string, key2 string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			value1, err1 := RetrieveNestedValue(hub.Context(), key1)
+			if err1 != nil {
+				fmt.Println(err1.Error())
+				hub.RedLink() <- "KEY1_NOT_FOUND"
+				return
+			}
+			value2, err2 := RetrieveNestedValue(hub.Context(), key2)
+			if err2 != nil {
+				hub.RedLink() <- "KEY2_NOT_FOUND"
+				return
+			}
 
+			if value1 == value2 {
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			} else {
+				hub.LogLink() <- trigger + "->" + negative_emission
+				hub.UpLink() <- negative_emission
+			}
+		}
+	}
+
+}
 func NumericSanitizer(hub *hub.Hub, trigger string, emission string, key string) {
 	persianArabicToEnglish := map[rune]rune{
 		'۰': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
@@ -539,6 +564,37 @@ func UpsertKeysAsItemIntoCollection(hub *hub.Hub, trigger string, emission strin
 				newItem[k] = hub.Context()[k]
 			}
 			if db.UpsertItemInCollection(collection_name, newItem, "id") {
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			}
+		}
+	}
+}
+func UpsertContextAsItemIntoCollection(hub *hub.Hub, trigger string, emission string, except_keys []string, collection_name string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			newItem := make(map[string]interface{}, len(hub.Context()))
+			for key, value := range hub.Context() {
+				newItem[key] = value
+			}
+			for _, k := range except_keys {
+				delete(newItem, k)
+			}
+			if db.UpsertItemInCollection(collection_name, newItem, "id") {
+				hub.LogLink() <- trigger + "->" + emission
+				hub.UpLink() <- emission
+			}
+		}
+	}
+}
+func DeleteItemFromCollection(hub *hub.Hub, trigger string, emission string, context_keys []string, collection_name string) {
+	for msg := range hub.DownLink() {
+		if msg == trigger {
+			filter := make(map[string]interface{})
+			for _, k := range context_keys {
+				filter[k] = hub.Context()[k]
+			}
+			if db.DeleteOneFromCollection(collection_name, filter) {
 				hub.LogLink() <- trigger + "->" + emission
 				hub.UpLink() <- emission
 			}
