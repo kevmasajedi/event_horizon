@@ -92,6 +92,14 @@ func FindOneFromCollection(collectionName string, item map[string]interface{}) m
 	}
 	return result
 }
+func DeleteOneFromCollection(collectionName string, item map[string]interface{}) bool {
+	_, err := GetDatabase().Collection(collectionName).DeleteOne(context.TODO(), item)
+	if err != nil {
+		log.Println("Error deleting item:", err)
+		return false
+	}
+	return true
+}
 func load_tls_config() *tls.Config {
 	caFile := "cert/fullchain.pem"
 	caCert, err := os.ReadFile(caFile)
